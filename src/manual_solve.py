@@ -22,7 +22,8 @@ def img_create(h, w, color=0):
 
 
 def img_overlay(base, overlay, pos=(0, 0)):
-    base[pos[0]:pos[0] + overlay.shape[0], pos[1]:pos[1] + overlay.shape[1]] = overlay
+    base[pos[0]:pos[0] + overlay.shape[0], pos[1]
+        :pos[1] + overlay.shape[1]] = overlay
 
 
 def img_hist(img):
@@ -46,6 +47,23 @@ def img_interest_area(img):
     foreground = np.where(img != mc)
     return (min(foreground[0], default=0), min(foreground[1], default=0)), (max(foreground[0], default=0), max(foreground[1], default=0))
 
+
+def img_colors(img):
+    return set(img_hist(img).keys())
+
+
+def img_filter(img, color, bg_color=None):
+    bgc = bg_color if bg_color is not None else img_major_color(img)
+    return np.vectorize(lambda c: c if c == color else bgc)(img)
+
+
+def img_color_density(img, color):
+    fimg = img_filter(img, color)
+    ulc, lrc = img_interest_area(fimg)
+    area = abs(ulc[0] - lrc[0]) * abs(ulc[1] - lrc[1])
+    count = img_hist(img).get(color, 0)
+    return count / area
+
 ###################################################################################
 
 
@@ -61,24 +79,67 @@ def solve_05269061(x):
     return x
 
 
-def solve_67e8384a(inimg):
-    outimg = img_create(inimg.shape[0]*2, inimg.shape[1]*2)
+def solve_67e8384a(img):
+    outimg = img_create(img.shape[0]*2, img.shape[1]*2)
 
-    overlay = inimg
+    overlay = img
     img_overlay(outimg, overlay, pos=(0, 0))
     overlay = np.flipud(overlay)
-    img_overlay(outimg, overlay, pos=(inimg.shape[0], 0))
+    img_overlay(outimg, overlay, pos=(img.shape[0], 0))
     overlay = np.fliplr(overlay)
-    img_overlay(outimg, overlay, pos=(inimg.shape[0], inimg.shape[1]))
+    img_overlay(outimg, overlay, pos=(img.shape[0], img.shape[1]))
     overlay = np.flipud(overlay)
-    img_overlay(outimg, overlay, pos=(0, inimg.shape[1]))
+    img_overlay(outimg, overlay, pos=(0, img.shape[1]))
 
     return outimg
 
 
-def solve_2013d3e2(inimg):
-    obj = img_subimg(inimg, *img_interest_area(inimg))
+def solve_2013d3e2(img):
+    obj = img_subimg(img, *img_interest_area(img))
     return obj[:obj.shape[0]//2, :obj.shape[1]//2]
+
+
+def solve_5ad4f10b(img):
+
+    def _divs(n, m):
+        return [1] if m == 1 else (_divs(n, m-1) + ([m] if n % m == 0 else []))
+
+    def divs(n):
+        for x in _divs(n, n-1):
+            yield x
+
+    bgc = img_major_color(img)
+    colors = img_colors(img)
+    colors.remove(bgc)
+    colors = sorted(
+        list(map(lambda c: (c, img_color_density(img, c)), colors)),
+        key=lambda e: e[1], reverse=True)
+    obj_color = colors[0][0]
+    pigment = colors[1][0]
+
+    fimg = img_filter(img, obj_color)
+    obj = img_subimg(fimg, *img_interest_area(fimg))
+
+    tile_sides = list(set(list(divs(obj.shape[0])) + list(divs(obj.shape[1]))))
+    new_obj = []
+    for t in reversed(tile_sides):
+        new_obj = img_create(obj.shape[0]//t, obj.shape[1]//t)
+        unicolor = True
+        for i in range(0, obj.shape[0], t):
+            for j in range(0, obj.shape[1], t):
+                h = img_hist(img_subimg(obj, (i, j), (i+t-1, j+t-1)))
+                unicolor = len(h) == 1
+                if unicolor:
+                    uc = list(h.keys())[0]
+                    new_obj[(i//t), (j//t)] = pigment if uc == obj_color else bgc
+                else:
+                    break
+            if not unicolor:
+                break
+        if unicolor:
+            break
+
+    return new_obj
 
 
 def main():
