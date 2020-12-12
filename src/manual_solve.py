@@ -22,8 +22,11 @@ def img_create(h, w, color=0):
 
 
 def img_overlay(base, overlay, pos=(0, 0)):
-    base[pos[0]:pos[0] + overlay.shape[0], pos[1]
-        :pos[1] + overlay.shape[1]] = overlay
+    underlay = base[pos[0]:pos[0] + overlay.shape[0],
+                    pos[1]:pos[1] + overlay.shape[1]]
+    overlay = np.where(overlay == -1, underlay, overlay)
+    base[pos[0]:pos[0] + overlay.shape[0],
+         pos[1]:pos[1] + overlay.shape[1]] = overlay
 
 
 def img_hist(img):
@@ -63,6 +66,18 @@ def img_color_density(img, color):
     area = abs(ulc[0] - lrc[0]) * abs(ulc[1] - lrc[1])
     count = img_hist(img).get(color, 0)
     return count / area
+
+
+def img_unicolor_objs(img):
+    objs_colors = img_colors(img)
+    objs_colors.remove(img_major_color(img))
+    for obj_color in objs_colors:
+        fimg = img_filter(img, obj_color)
+        yield img_subimg(fimg, *img_interest_area(fimg))
+
+
+def img_clear_color(img, color):
+    return np.vectorize(lambda c: -1 if c == color else c)(img)
 
 ###################################################################################
 
@@ -140,6 +155,20 @@ def solve_5ad4f10b(img):
             break
 
     return new_obj
+
+
+def solve_c8cbb738(img):
+    bgc = img_major_color(img)
+    objs = img_unicolor_objs(img)
+    objs = list(map(lambda obj: img_clear_color(obj, bgc), objs))
+    objs_sizes = (obj.shape for obj in objs)
+    combined_size = tuple(map(lambda t: max(t), zip(*objs_sizes)))
+    outimg = img_create(*combined_size, bgc)
+    for obj in objs:
+        centering_pos = tuple(
+            (np.array(outimg.shape) - np.array(obj.shape)) // 2)
+        img_overlay(outimg, obj, centering_pos)
+    return outimg
 
 
 def main():
