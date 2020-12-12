@@ -21,8 +21,7 @@ def img_create(h, w, color=0):
 
 
 def img_overlay(base, overlay, pos=(0, 0)):
-    base[pos[0]:pos[0] + overlay.shape[0],
-         pos[1]:pos[1] + overlay.shape[1]] = img
+    base[pos[0]:pos[0] + overlay.shape[0], pos[1]:pos[1] + overlay.shape[1]] = overlay
 
 ###################################################################################
 
