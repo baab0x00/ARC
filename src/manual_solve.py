@@ -5,6 +5,7 @@ import sys
 import json
 import numpy as np
 import re
+from collections import defaultdict
 
 # YOUR CODE HERE: write at least three functions which solve
 # specific tasks by transforming the input x and returning the
@@ -22,6 +23,28 @@ def img_create(h, w, color=0):
 
 def img_overlay(base, overlay, pos=(0, 0)):
     base[pos[0]:pos[0] + overlay.shape[0], pos[1]:pos[1] + overlay.shape[1]] = overlay
+
+
+def img_hist(img):
+    d = defaultdict(int)
+    for i, j in np.ndindex(img.shape):
+        d[img[i, j]] += 1
+    return dict(d)
+
+
+def img_major_color(img):
+    hist = img_hist(img)
+    return max(hist, key=hist.get)
+
+
+def img_subimg(img, ulc, lrc):
+    return img[ulc[0]:lrc[0]+1, ulc[1]:lrc[1]+1]
+
+
+def img_interest_area(img):
+    mc = img_major_color(img)
+    foreground = np.where(img != mc)
+    return (min(foreground[0], default=0), min(foreground[1], default=0)), (max(foreground[0], default=0), max(foreground[1], default=0))
 
 ###################################################################################
 
@@ -51,6 +74,11 @@ def solve_67e8384a(inimg):
     img_overlay(outimg, overlay, pos=(0, inimg.shape[1]))
 
     return outimg
+
+
+def solve_2013d3e2(inimg):
+    obj = img_subimg(inimg, *img_interest_area(inimg))
+    return obj[:obj.shape[0]//2, :obj.shape[1]//2]
 
 
 def main():
