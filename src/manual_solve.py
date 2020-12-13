@@ -45,8 +45,8 @@ def img_subimg(img, ulc, lrc):
     return img[ulc[0]:lrc[0]+1, ulc[1]:lrc[1]+1]
 
 
-def img_interest_area(img):
-    mc = img_major_color(img)
+def img_interest_area(img, bgc=None):
+    mc = img_major_color(img) if bgc is None else bgc
     foreground = np.where(img != mc)
     return (min(foreground[0], default=0), min(foreground[1], default=0)), (max(foreground[0], default=0), max(foreground[1], default=0))
 
@@ -169,6 +169,48 @@ def solve_c8cbb738(img):
             (np.array(outimg.shape) - np.array(obj.shape)) // 2)
         img_overlay(outimg, obj, centering_pos)
     return outimg
+
+
+def solve_681b3aeb(img):
+
+    def conv_overlay(img1, img2):
+        for i in range(-img2.shape[0], img1.shape[0] + 1):
+            for j in range(-img2.shape[1], img1.shape[1] + 1):
+                index = np.array((i, j))
+                f = np.where((index < 0), (img2.shape + index),
+                             (img1.shape - index))
+                intersection = np.array(
+                    list(map(min, zip(img1.shape, img2.shape, f))))
+                out_size = np.array(img1.shape) + \
+                    np.array(img2.shape) - intersection
+                outimg = img_create(*out_size, color=-1)
+                pos1 = tuple(np.where(index < 0, -index, 0))
+                pos2 = tuple(np.where(index < 0, 0, index))
+                img_overlay(outimg, img1, pos1)
+                img_overlay(outimg, img2, pos2)
+                yield outimg
+
+    def does_match(img, objs):
+        if(len(img_hist(img).keys()) > 2):
+            return False
+        else:
+            for obj in objs:
+                colors = img_hist(obj)
+                colors.pop(-1, 0)
+                obj_color = list(colors.keys())[0]
+                fimg = img_filter(img, color=obj_color, bg_color=-1)
+                fobj = img_subimg(fimg, *img_interest_area(fimg, bgc=-1))
+                if(not np.array_equal(obj, fobj)):
+                    return False
+
+        return True
+
+    bgc = img_major_color(img)
+    objs = img_unicolor_objs(img)
+    objs = list(map(lambda obj: img_clear_color(obj, bgc), objs))
+    for im in conv_overlay(*objs):
+        if(does_match(im, objs)):
+            return im
 
 
 def main():
