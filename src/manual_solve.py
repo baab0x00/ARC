@@ -82,16 +82,16 @@ def img_clear_color(img, color):
 ###################################################################################
 
 
-def solve_6a1e5592(x):
-    return x
+# def solve_6a1e5592(x):
+#     return x
 
 
-def solve_b2862040(x):
-    return x
+# def solve_b2862040(x):
+#     return x
 
 
-def solve_05269061(x):
-    return x
+# def solve_05269061(x):
+#     return x
 
 
 def solve_67e8384a(img):
@@ -112,6 +112,18 @@ def solve_67e8384a(img):
 def solve_2013d3e2(img):
     obj = img_subimg(img, *img_interest_area(img))
     return obj[:obj.shape[0]//2, :obj.shape[1]//2]
+
+
+def solve_6d75e8bb(img):
+    outimg = np.copy(img)
+    fill_color = 2
+    bgc = img_major_color(img)
+    bb = img_interest_area(img)
+    obj = img_subimg(img, *bb)
+    obj = np.where(obj == bgc, fill_color, obj)
+    img_overlay(outimg, obj, bb[0])
+
+    return outimg
 
 
 def solve_5ad4f10b(img):
